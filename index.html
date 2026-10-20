@@ -414,7 +414,8 @@
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   .toast.err{ border-color:rgba(240,82,107,.6); color:var(--down-soft); }
 
-  /* ——— 刷新进度面板（只在本地 server.mjs 下出现）——— */
+  /* ——— 刷新进度面板样式：面板已于 2026-10-20 随按钮一起移除，这里保留选择器
+         只为不误伤相邻规则；不再有任何 DOM 使用它 ——— */
   .ref-panel{ position:fixed; right:20px; bottom:20px; width:min(470px, calc(100vw - 32px)); max-height:min(58vh, 540px); display:none; flex-direction:column; background:var(--surface-2); border:1px solid var(--border-strong); border-radius:var(--r-lg); box-shadow:var(--shadow-3); z-index:90; overflow:hidden; }
   .ref-panel.show{ display:flex; }
   .ref-hd{ display:flex; align-items:center; gap:var(--s2); padding:11px var(--s4); border-bottom:1px solid var(--border); background:var(--surface-3); }
@@ -1188,7 +1189,7 @@ function switchTab(name){
 
 /* ——— 初始化 ——— */
 function init(){
-  if(!DATA){ document.getElementById('board').textContent='暂无数据，请先运行 node fetch.mjs'; return; }
+  if(!DATA){ document.getElementById('board').textContent='暂无数据：请双击桌面「一键更新.bat」抓取一轮。'; return; }
   renderRank(DATA);
   document.getElementById('tabs').addEventListener('click',e=>{ const b=e.target.closest('.tab'); if(b) switchTab(b.dataset.tab); });
   let rzT; window.addEventListener('resize',()=>{ if(!rendered.group) return; clearTimeout(rzT); rzT=setTimeout(fitHeatmapLabels,150); });
