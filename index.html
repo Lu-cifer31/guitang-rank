@@ -660,7 +660,9 @@ function renderRank(D){
     const lg=el('div','trend-legend'); lg.append(el('span',null,`近 ${p.trend?.games||0} 场`),el('span','chg '+dir,(chg>0?'+':'')+chg.toFixed(1))); tr.appendChild(lg); row.appendChild(tr);
     const st=el('div','stats'); const form=el('div','form'); (p.trend?.recentForm||'').split('').forEach(ch=>form.appendChild(el('i',ch==='W'?'w':'l'))); form.title=`最近 ${p.trend?.recentGames||0} 场：${p.trend?.recentWins||0} 胜`; st.appendChild(form);
     st.appendChild(el('div','stat-line',`<b>${(p.winrate*100).toFixed(1)}%</b> 胜率 · ${p.wins}-${p.losses}`));
-    st.appendChild(el('div','stat-line',`全球 <b>#${p.overallRank}</b>`));
+    // 上游 profile 有时不返回 overallRank（2026-10-26：小猪、达哥 就是这种情况），
+    // 直接插值会渲染成「全球 #undefined」，这里给个占位。
+    st.appendChild(el('div','stat-line', p.overallRank ? `全球 <b>#${p.overallRank}</b>` : '全球 <b>—</b>'));
     st.appendChild(el('span','tag',relTime(p.lastMatch)+'开黑'));
     if(p.stale) st.appendChild(el('div','stat-line stale','⚠ 本次未刷新'));
     row.appendChild(st);
