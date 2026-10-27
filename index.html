@@ -847,7 +847,7 @@ function renderPool(D){
     hd.appendChild(el('div','pr',fmt(p.rating)));
     hd.appendChild(el('div','sp'));
     card.appendChild(hd);
-    card.appendChild(poolSection('hero', p, '英雄池', '条=个人胜率'));
+    card.appendChild(poolSection('hero', p, '英雄池', '胜率条=个人胜率'));
     card.appendChild(poolSection('spell', p, '技能池', '金边=大招 · 已剔除自选英雄'));
     const sh=selfHeroMap[p.steamId];
     if(sh && sh.heroes && sh.heroes.length) card.appendChild(selfHeroSection(sh));
