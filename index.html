@@ -501,7 +501,7 @@
   <header class="hd">
     <div class="hd-l">
       <span class="eyebrow">Dota 2 · Ability Draft</span>
-      <h1>龟塘王者 战力榜 <span class="ver">v1.2 by βLuε</span><button class="ver-btn" id="clBtn" type="button" aria-haspopup="dialog" aria-controls="clOverlay">更新日志</button></h1>
+      <h1>龟塘王者 战力榜 <span class="ver">v1.3 by βLuε</span><button class="ver-btn" id="clBtn" type="button" aria-haspopup="dialog" aria-controls="clOverlay">更新日志</button></h1>
       <p class="sub">OMG（技能征召）分数、英雄/技能池与数据分析 · 数据来自 <code>windrun.io</code></p>
     </div>
     <div class="meta">
@@ -770,17 +770,36 @@ function spellCell(s){
   c.appendChild(wrBar(s.winrate)); c.appendChild(el('div','imetro',s.games+'场')); return c;
 }
 let poolSorts={};
+// 每人默认展示的条数（从「全量池」里选，而不是先按场次砍到 20 再排序）
+const POOL_TOP_N=20;
+// 数据源必须是全量池 heroPool / spellPool（英雄约 127 条、技能约 200 条）。
+// 早先这里取的是 topHeroes / topSpells —— 那已经是「按场次截断好的 20 条」，
+// 结果点「胜率」只是把这 20 个重排一遍，整池里胜率更高但场次排 21+ 的英雄永远看不到。
+// 旧数据没有 heroPool 时才退回 topHeroes / topSpells。
+function poolOf(p, type){
+  const full=type==='hero'?(p.heroPool||[]):(p.spellPool||[]);
+  if(full.length) return full;
+  return type==='hero'?(p.topHeroes||[]):(p.topSpells||[]);
+}
 function poolSection(type, p, title, iconNote){
   const sec=el('div','pool-sec');
   const head=el('div','psec-hd');
-  head.appendChild(el('h4',null,`${title} <span>${iconNote}</span>`));
+  const noteEl=el('span',null,iconNote);
+  const h4=el('h4'); h4.appendChild(document.createTextNode(title+' ')); h4.appendChild(noteEl);
+  head.appendChild(h4);
   const seg=el('div','seg pool-sort');
   const grid=el('div','igrid');
+  const pool=poolOf(p,type);
   const paint=()=>{
-    const arr=(type==='hero'?p.topHeroes:p.topSpells||[]).slice();
     const key=poolSorts[p.steamId][type];
-    arr.sort((a,b)=> key==='games'? b.games-a.games : b.winrate-a.winrate);
-    grid.innerHTML=''; arr.forEach(it=>grid.appendChild(type==='hero'?heroCell(it):spellCell(it)));
+    const arr=pool.slice();
+    // 场次：场次降序，同场次比胜率；胜率：胜率降序，同胜率比场次（样本大的在前）。
+    // 两者都补了第二关键字，保证同分时的顺序稳定、不会随浏览器实现漂移。
+    if(key==='games') arr.sort((a,b)=> b.games-a.games || b.winrate-a.winrate);
+    else arr.sort((a,b)=> b.winrate-a.winrate || b.games-a.games);
+    const top=arr.slice(0,POOL_TOP_N);
+    noteEl.innerHTML=`${iconNote} · 全池 ${pool.length} 个，按${key==='games'?'场次':'胜率'}取前 ${top.length}`;
+    grid.innerHTML=''; top.forEach(it=>grid.appendChild(type==='hero'?heroCell(it):spellCell(it)));
   };
   [{k:'games',t:'场次'},{k:'winrate',t:'胜率'}].forEach(({k,t})=>{
     const b=el('button', poolSorts[p.steamId][type]===k?'active':'', t);
@@ -828,8 +847,8 @@ function renderPool(D){
     hd.appendChild(el('div','pr',fmt(p.rating)));
     hd.appendChild(el('div','sp'));
     card.appendChild(hd);
-    card.appendChild(poolSection('hero', p, '英雄池', '最常使用 · 胜率条'));
-    card.appendChild(poolSection('spell', p, '技能池', '最常拿到 · 金边=大招 · 已剔除自选英雄'));
+    card.appendChild(poolSection('hero', p, '英雄池', '条=个人胜率'));
+    card.appendChild(poolSection('spell', p, '技能池', '金边=大招 · 已剔除自选英雄'));
     const sh=selfHeroMap[p.steamId];
     if(sh && sh.heroes && sh.heroes.length) card.appendChild(selfHeroSection(sh));
     list.appendChild(card);
@@ -1299,7 +1318,7 @@ function switchTab(name){
 
 /* ——— 更新日志（数据由 gen_changelog.mjs 从 CHANGELOG.md 生成，勿手改这一段） ——— */
 /* CHANGELOG_DATA:START */
-const CHANGELOG_DATA = [{"ver":"v1.2","date":"2026-10-26","notes":[],"groups":[{"title":"新增","items":["<b>新增选手 M哥</b>：名册扩到 13 人，空降战力榜首（3,166 分）。","<b>新增「自选英雄」栏</b>：某版本更新后英雄模型也能像技能一样自选，windrun 把这类选择记进了技能统计。现已从技能池、技能总表、招牌技能、冷门绝活、娱乐分析中全部剔除，改为在「英雄 &amp; 技能池」页每位选手单独一栏，按场次取前 5（不足 5 个按实际，没有就不显示）。","<b>页面内更新日志</b>：版本号右侧新增按钮，点开可看全部版本的精简变更。"]},{"title":"修复","items":["「英雄 &amp; 技能池」页点击「场次 / 胜率」排序后按钮高亮消失，看不出当前按什么排序。","上游没给全球排名时显示「全球 —」，不再出现「全球 #undefined」。"]},{"title":"交互","items":["移除本地页面右上角的「更新数据」按钮：它只刷新本地、不会发布，容易误以为「点一下就上线了」。更新统一走桌面 <code>一键更新.bat</code>（抓取 → 重建 → 推送一条龙）。","<b>数据分析 / 娱乐分析里的选手分组统一按战力榜顺序排列</b>（此前热力图按名册原顺序、招牌 / 冷门 / 娱乐按各自分数排序，同一批人在各页顺序都不一样）。"]}]},{"ver":"v1.1","date":"2026-09-20","notes":[],"groups":[{"title":"新增","items":["<b>群总数据可展开玩家明细</b>：点击任意英雄 / 技能行，展开用过它的每位玩家的场次、胜负与胜率。","<b>冷门绝活</b>：口径改为「未进入其他选手的技能池」，短评按选取率 + 胜率生成。","<b>招牌技能</b>：卡片改为「个人 vs 群均」对比表，说明重写为白话，招牌分放大 100 倍显示。"]},{"title":"算法","items":["伪绝活「吹度」重构：由单纯的胜率差改为 <b>胜率领先 × 选取率反比</b>——胜率越高、用得越少越「吹」。"]},{"title":"显示","items":["热力图改用每人前 100 技能；配色改为低重合红 → 20% 黄 → 满格绿；长名自动缩放字号，不再被裁切。","术语中文化（TrueSkill → 征召评分），选手改名 Crimson → 红红。","修复顶部标签页点击无响应、后几个分页头像只显示首字母、走势图文字被压扁、移动端长技能名挤掉指标等问题。"]}]},{"ver":"v1.0","date":"2026-08-11","notes":["首个带版本号的发布：战力榜、招牌技能、冷门绝活、技能热力图、娱乐分析等模块成型。"],"groups":[]}];
+const CHANGELOG_DATA = [{"ver":"v1.3","date":"2026-10-27","notes":[],"groups":[{"title":"修复","items":["<b>「英雄 &amp; 技能池」的排序改为从全量池里选人</b>：此前每人先按场次截到 20 个，点「胜率」只是把这 20 个重排一遍，整池里胜率更高但场次排在 20 名之后的英雄 / 技能永远看不到。现在点「胜率」是在整池（英雄约 127 个、技能约 200 个）里挑胜率最高的 20 个，「场次」同样按全池取前 20。","栏目标题会标出当前口径（如「全池 127 个，按胜率取前 20」），不再只写「最常使用」误导成只统计常用项。","胜率并列时按场次多的在前、场次并列时按胜率高的在前，顺序固定不再抖动。"]}]},{"ver":"v1.2","date":"2026-10-26","notes":[],"groups":[{"title":"新增","items":["<b>新增选手 M哥</b>：名册扩到 13 人，空降战力榜首（3,166 分）。","<b>新增「自选英雄」栏</b>：某版本更新后英雄模型也能像技能一样自选，windrun 把这类选择记进了技能统计。现已从技能池、技能总表、招牌技能、冷门绝活、娱乐分析中全部剔除，改为在「英雄 &amp; 技能池」页每位选手单独一栏，按场次取前 5（不足 5 个按实际，没有就不显示）。","<b>页面内更新日志</b>：版本号右侧新增按钮，点开可看全部版本的精简变更。"]},{"title":"修复","items":["「英雄 &amp; 技能池」页点击「场次 / 胜率」排序后按钮高亮消失，看不出当前按什么排序。","上游没给全球排名时显示「全球 —」，不再出现「全球 #undefined」。"]},{"title":"交互","items":["移除本地页面右上角的「更新数据」按钮：它只刷新本地、不会发布，容易误以为「点一下就上线了」。更新统一走桌面 <code>一键更新.bat</code>（抓取 → 重建 → 推送一条龙）。","<b>数据分析 / 娱乐分析里的选手分组统一按战力榜顺序排列</b>（此前热力图按名册原顺序、招牌 / 冷门 / 娱乐按各自分数排序，同一批人在各页顺序都不一样）。"]}]},{"ver":"v1.1","date":"2026-09-20","notes":[],"groups":[{"title":"新增","items":["<b>群总数据可展开玩家明细</b>：点击任意英雄 / 技能行，展开用过它的每位玩家的场次、胜负与胜率。","<b>冷门绝活</b>：口径改为「未进入其他选手的技能池」，短评按选取率 + 胜率生成。","<b>招牌技能</b>：卡片改为「个人 vs 群均」对比表，说明重写为白话，招牌分放大 100 倍显示。"]},{"title":"算法","items":["伪绝活「吹度」重构：由单纯的胜率差改为 <b>胜率领先 × 选取率反比</b>——胜率越高、用得越少越「吹」。"]},{"title":"显示","items":["热力图改用每人前 100 技能；配色改为低重合红 → 20% 黄 → 满格绿；长名自动缩放字号，不再被裁切。","术语中文化（TrueSkill → 征召评分），选手改名 Crimson → 红红。","修复顶部标签页点击无响应、后几个分页头像只显示首字母、走势图文字被压扁、移动端长技能名挤掉指标等问题。"]}]},{"ver":"v1.0","date":"2026-08-11","notes":["首个带版本号的发布：战力榜、招牌技能、冷门绝活、技能热力图、娱乐分析等模块成型。"],"groups":[]}];
 /* CHANGELOG_DATA:END */
 
 function renderChangelog(){
